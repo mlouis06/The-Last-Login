@@ -997,4 +997,607 @@ OWNER FIELD: [corrupt]`
           <span>Why was she in WATCH?</span>
           <span>Who are the other names?</span>
           <span>Where is Lena?</span>
+        </div>      </section>
+
+      <section class="chapter-transition">
+        <div>
+          <div class="recap-kicker">CASE CONTINUES</div>
+          <h3>Chapter Two: Morrow</h3>
+          <p>Coming soon.</p>
         </div>
+      </section>`;
+  }
+
+  function renderChapterTwoTeaser() {
+    state.view = "recap";
+    saveState();
+    renderRecap();
+  }
+
+  function renderBrief() {
+    markOpened("brief");
+    refreshObjectiveState(true);
+    view.innerHTML = `
+      <div class="view-head">
+        <div>
+          <h2>Case 19-117</h2>
+          <p>Recovered material associated with a 2019 missing-person investigation. The case was closed after investigators concluded Lena Ortiz left voluntarily.</p>
+        </div>
+      </div>
+      <div class="grid two">
+        <section class="card">
+          <h3>Lena Ortiz</h3>
+          <dl>
+            <div class="fact"><dt>Age</dt><dd>${story.subject.age}</dd></div>
+            <div class="fact"><dt>Missing since</dt><dd>${story.subject.disappeared}</dd></div>
+            <div class="fact"><dt>Location</dt><dd>${story.subject.location}</dd></div>
+            <div class="fact"><dt>Case status</dt><dd>${story.subject.status}</dd></div>
+          </dl>
+        </section>
+        <section class="card">
+          <h3>Official finding</h3>
+          <p>${story.subject.official}</p>
+          <p class="warning">${story.subject.recovery}</p>
+          <button class="small-button source-button" id="viewCaseReport">VIEW ORIGINAL REPORT</button>
+        </section>
+      </div>
+      <section class="card" style="margin-top:12px">
+        <h3>Assignment</h3>
+        <p>You are reviewing a newly recovered forensic image during an evidence-room audit. Determine whether the archived material changes the original finding.</p>
+        <p class="muted">No live network access is required. All characters, locations, agencies, and evidence in this game are fictional.</p>
+      </section>`;
+    const reportBtn = $("#viewCaseReport");
+    if (reportBtn) {
+      reportBtn.addEventListener("click", () => openImageEvidence("Official Case Report", story.subject.reportImage));
+    }
+  }
+
+  function fileRows() {
+    let list = [...story.files];
+    if (state.scares.includes("index_change")) {
+      list.push({
+        id: "new_file",
+        title: "you_missed_this.txt",
+        folder: "RECOVERED",
+        date: "2019-11-18",
+        preview: "Unindexed text fragment.",
+        clue: "MISSED",
+        text:
+`You kept looking at the note.
+
+You should have looked at who had access to the car.
+
+This file has no original path.
+Creation timestamp unavailable.`
+      });
+    }
+    if (state.hiddenUnlocked) list.push(...story.hiddenFiles.filter(x => x.id === "os_manifest"));
+    if (state.watchUnlocked) list.push(...story.hiddenFiles.filter(x => x.id === "watch_index"));
+    return list;
+  }
+
+  function renderFiles() {
+    const items = fileRows();
+    view.innerHTML = `
+      <div class="view-head">
+        <div>
+          <h2>Recovered Files</h2>
+          <p>Files are shown from the composite recovery image. Deleted and partially reconstructed items may have incomplete timestamps.</p>
+        </div>
+      </div>
+      <div class="list">
+        ${items.map(f => `
+          <button class="item-button ${state.opened.includes(f.id) ? "" : "unread"}" data-open-file="${f.id}">
+            <span class="item-title">${escapeHtml(f.title)}</span>
+            <span class="item-meta">${escapeHtml(f.folder)} // ${escapeHtml(f.date)}</span>
+            <span class="item-preview">${escapeHtml(f.preview)}</span>
+          </button>`).join("")}
+      </div>`;
+    $$("[data-open-file]", view).forEach(btn => btn.addEventListener("click", () => openArtifact(items.find(x => x.id === btn.dataset.openFile))));
+  }
+
+  function renderMail() {
+    view.innerHTML = `
+      <div class="view-head">
+        <div>
+          <h2>Mail</h2>
+          <p>Recovered mailbox export. Server-side deletions are not represented unless cached locally.</p>
+        </div>
+      </div>
+      <div class="list">
+        ${story.mail.map(m => `
+          <button class="item-button ${state.opened.includes(m.id) ? "" : "unread"}" data-mail="${m.id}">
+            <span class="item-title">${escapeHtml(m.subject)}</span>
+            <span class="item-meta">${escapeHtml(m.from)} // ${escapeHtml(m.date)}</span>
+            <span class="item-preview">${escapeHtml(m.preview)}</span>
+          </button>`).join("")}
+      </div>`;
+    $$("[data-mail]", view).forEach(btn => btn.addEventListener("click", () => openMail(story.mail.find(x => x.id === btn.dataset.mail))));
+  }
+
+  function renderMessages() {
+    view.innerHTML = `
+      <div class="view-head">
+        <div>
+          <h2>Messages</h2>
+          <p>Threads reconstructed from device backup fragments.</p>
+        </div>
+      </div>
+      <div class="list">
+        ${story.messages.map(t => `
+          <button class="item-button ${state.opened.includes(t.id) ? "" : "unread"}" data-thread="${t.id}">
+            <span class="item-title">${escapeHtml(t.name)}</span>
+            <span class="item-preview">${escapeHtml(t.preview)}</span>
+          </button>`).join("")}
+      </div>`;
+    $$("[data-thread]", view).forEach(btn => btn.addEventListener("click", () => openThread(story.messages.find(x => x.id === btn.dataset.thread))));
+  }
+
+  function renderSearch() {
+    view.innerHTML = `
+      <div class="view-head">
+        <div>
+          <h2>Artifact Search</h2>
+          <p>Search recovered text by a word or phrase you found elsewhere. Some fragments are not visible in the normal file index.</p>
+        </div>
+      </div>
+      <form id="searchForm" class="search-row">
+        <input id="searchInput" autocomplete="off" placeholder="Try a name, place, credential, or phrase…" />
+        <button>SEARCH</button>
+      </form>
+      <div id="searchResults" class="search-results">
+        <div class="card muted">No query entered.</div>
+      </div>`;
+
+    $("#searchForm").addEventListener("submit", e => {
+      e.preventDefault();
+      const q = $("#searchInput").value.trim().toLowerCase();
+      doSearch(q);
+    });
+  }
+
+  function doSearch(q) {
+    const box = $("#searchResults");
+    if (!q) {
+      box.innerHTML = `<div class="card muted">Enter a search term.</div>`;
+      return;
+    }
+
+    state.interactionCount++;
+    if (!state.searched.includes(q)) state.searched.push(q);
+    saveState();
+
+    const blockedTerms = {
+      "staff_032": 9,
+      "room 14": 6
+    };
+    for (const [term, required] of Object.entries(blockedTerms)) {
+      if ((q.includes(term) || term.includes(q)) && currentObjectiveIndex() < required) {
+        box.innerHTML = `<div class="card"><strong>SEARCH SCOPE RESTRICTED</strong><p class="muted">That index is not available in the current recovery stage.</p></div>`;
+        beep("bad");
+        return;
+      }
+    }
+
+    const hits = searchIndex.filter(row => row.key.includes(q) || q.includes(row.key) || row.body.toLowerCase().includes(q));
+
+    if (!hits.length) {
+      box.innerHTML = `<div class="card"><strong>0 results</strong><p class="muted">No recovered artifact contains “${escapeHtml(q)}”.</p></div>`;
+      if (state.interactionCount > 12 && !state.scares.includes("search_reply")) {
+        state.scares.push("search_reply");
+        setTimeout(() => {
+          box.innerHTML += `<div class="card"><span class="item-meta">UNINDEXED RESULT</span><p>Try searching for what she was afraid of.</p></div>`;
+          tinyGlitch();
+        }, 700);
+      }
+      return;
+    }
+
+    box.innerHTML = hits.map(hit => `
+      <button class="item-button" data-hit="${escapeAttr(hit.key)}">
+        <span class="item-title">${escapeHtml(hit.label)}</span>
+        <span class="item-preview">${escapeHtml(hit.body.slice(0, 150))}${hit.body.length > 150 ? "…" : ""}</span>
+      </button>`).join("");
+
+    $$("[data-hit]", box).forEach(btn => {
+      btn.addEventListener("click", () => {
+        const hit = searchIndex.find(x => x.key === btn.dataset.hit);
+        openModal(hit.label, hit.body);
+        addClue(hit.clue);
+      });
+    });
+  }
+
+  function sourceForClue(id) {
+    const all = [...story.files, ...story.hiddenFiles, ...story.mail];
+    const item = all.find(x => x.clue === id && x.image);
+    if (item) return { src: item.image, title: item.title || item.subject || id };
+    if (id === "RUNAWAY") return { src: story.subject.reportImage, title: "Official Case Report" };
+    return null;
+  }
+
+  function renderEvidence() {
+    clearNew("evidence");
+    const clueNames = {
+      RUNAWAY: "Case closed as voluntary departure",
+      NOTE: "Recovered goodbye note",
+      PARKING: "Lena's car exited under staff override",
+      WATCHED: "Lena searched for signs of remote surveillance",
+      SHIFT: "Lena was scheduled to work the next morning",
+      DRAFT: "Draft warns not to trust a note",
+      DINNER: "Lena missed a planned dinner without contact",
+      MARA_EMAIL: "Mara warns Lena about screen mirroring",
+      CARD: "Briar purchase used magnetic stripe",
+      MARA_THREAD: "Lena and Mara discuss unauthorized account access",
+      MOM_THREAD: "Family messages show sudden break in routine",
+      UNKNOWN_THREAD: "Unknown sender knew Lena had been in a car",
+      MISSED: "Unindexed file points toward vehicle access",
+      MANIFEST: "Evidence image was assembled from four sources",
+      WATCH_INDEX: "Recovered directory lists surveillance modules",
+      MORROW: "Morrow Motor Lodge appears in Lena's final searches",
+      ROOM14: "Deleted fragment references room 14",
+      STAFF032_SEARCH: "STAFF_032 appears across unrelated systems"
+    };
+
+    const available = state.clues;
+    const selected = state.selectedClues;
+
+    view.innerHTML = `
+      <div class="view-head">
+        <div>
+          <h2>Evidence Board</h2>
+          <p>Flagged artifacts appear here. Select two related clues and connect them. Useful conclusions can unlock additional recovered data.</p>
+        </div>
+      </div>
+
+      <div class="grid two">
+        ${available.length ? available.map(id => `
+          <article class="card evidence-card">
+            <span class="evidence-tag">${escapeHtml(id)}</span>
+            <div>${escapeHtml(clueNames[id] || id)}</div>
+            ${sourceForClue(id) ? `<button class="small-button evidence-source-button" data-source-clue="${id}">VIEW SOURCE</button>` : ""}
+          </article>`).join("") : `<div class="card muted">No evidence flagged yet. Open files, mail, and message threads.</div>`}
+      </div>
+
+      <section class="connect-zone">
+        <h3>Connect two clues</h3>
+        <div class="connect-list">
+          ${available.map(id => `<button class="clue-pick ${selected.includes(id) ? "selected" : ""}" data-pick="${id}">${escapeHtml(id)}</button>`).join("")}
+        </div>
+        <div style="margin-top:12px">
+          <button id="connectButton" class="small-button" ${selected.length === 2 ? "" : "disabled"}>CONNECT</button>
+        </div>
+        <div id="conclusions">
+          ${state.conclusions.map(id => {
+            const recipe = connectionRecipes.find(r => r.id === id);
+            return recipe ? `<div class="conclusion">${escapeHtml(recipe.result)}</div>` : "";
+          }).join("")}
+        </div>
+      </section>`;
+
+    $$("[data-source-clue]", view).forEach(btn => {
+      btn.addEventListener("click", () => {
+        const src = sourceForClue(btn.dataset.sourceClue);
+        if (src) openImageEvidence(src.title, src.src);
+      });
+    });
+
+    $$("[data-pick]", view).forEach(btn => {
+      btn.addEventListener("click", () => {
+        const id = btn.dataset.pick;
+        if (state.selectedClues.includes(id)) {
+          state.selectedClues = state.selectedClues.filter(x => x !== id);
+        } else if (state.selectedClues.length < 2) {
+          state.selectedClues.push(id);
+        } else {
+          state.selectedClues = [state.selectedClues[1], id];
+        }
+        saveState();
+        renderEvidence();
+      });
+    });
+
+    const connect = $("#connectButton");
+    if (connect) connect.addEventListener("click", connectSelected);
+  }
+
+  function connectSelected() {
+    if (state.selectedClues.length !== 2) return;
+    const pair = [...state.selectedClues].sort();
+    const recipe = connectionRecipes.find(r => [...r.needs].sort().join("|") === pair.join("|"));
+    state.selectedClues = [];
+
+    if (!recipe) {
+      flashBanner("NO SUPPORTED CONNECTION // keep investigating");
+      saveState();
+      renderEvidence();
+      return;
+    }
+
+    if (!state.conclusions.includes(recipe.id)) {
+      state.conclusions.push(recipe.id);
+      state.interactionCount++;
+      flashBanner("CONCLUSION ADDED");
+    }
+    saveState();
+    updateProgression();
+    renderEvidence();
+  }
+
+  function renderNotes() {
+    view.innerHTML = `
+      <div class="view-head">
+        <div>
+          <h2>Investigator Notes</h2>
+          <p>Your notes save automatically in this browser.</p>
+        </div>
+      </div>
+      <textarea id="notesArea" class="notes-area" placeholder="Write theories, passwords, names, contradictions…">${escapeHtml(state.notes)}</textarea>`;
+    $("#notesArea").addEventListener("input", e => {
+      state.notes = e.target.value;
+      saveState();
+    });
+  }
+
+  function renderTerminal() {
+    refreshObjectiveState(false);
+    const ci = currentObjectiveIndex();
+    view.innerHTML = `
+      <div class="view-head">
+        <div>
+          <h2>Recovery Shell</h2>
+          <p>Use the terminal for system metadata and quick artifact checks. The active investigation objective is mirrored at right.</p>
+        </div>
+      </div>
+      <div class="terminal-layout">
+        <div>
+          <div id="terminalOut" class="terminal">GREYWATER COUNTY // OFFLINE RECOVERY SHELL
+mount: LORTIZ_PERSONAL [READ ONLY]
+network: DISABLED
+integrity: ${state.integrity.toFixed(1)}%
+
+type HELP for commands.
+
+</div>
+          <form id="terminalForm" class="terminal-input-row">
+            <span class="mono muted">audit@recovery:~$</span>
+            <input id="terminalInput" class="terminal-input" autocomplete="off" spellcheck="false" autofocus />
+          </form>
+        </div>
+        <aside class="terminal-side">
+          <h3>INVESTIGATION QUEUE</h3>
+          ${objectivesList.map((o,i) => {
+            const done = o.check();
+            const cls = done ? "todo-done" : (i === ci ? "todo-now" : "todo-locked");
+            const p = done ? "[x]" : (i === ci ? "[>]" : "[ ]");
+            return `<div class="todo-line ${cls}">${p} ${escapeHtml(o.title)}</div>`;
+          }).join("")}
+        </aside>
+      </div>`;
+
+    $("#terminalForm").addEventListener("submit", e => {
+      e.preventDefault();
+      const input = $("#terminalInput");
+      const raw = input.value.trim();
+      input.value = "";
+      beep("key");
+      terminalCommand(raw);
+    });
+  }
+
+  function terminalCommand(raw) {
+    if (!raw) return;
+    const out = $("#terminalOut");
+    const write = text => {
+      out.textContent += `recovery> ${raw}\n${text}\n\n`;
+      out.scrollTop = out.scrollHeight;
+    };
+    const [cmd, ...args] = raw.split(/\s+/);
+    const c = cmd.toLowerCase();
+    const arg = args.join(" ").toLowerCase();
+
+    if (c === "help") {
+      write("HELP\nSTATUS\nOBJECTIVE\nHASH\nWHOAMI\nLIST VOLUMES\nFIND <term>\nCLEAR");
+    } else if (c === "status") {
+      write(`CASE 19-117\nIMAGE INTEGRITY ${state.integrity.toFixed(1)}%\nARTIFACTS OPENED ${state.opened.length}\nEVIDENCE FLAGS ${state.clues.length}`);
+    } else if (c === "objective") {
+      const i = currentObjectiveIndex();
+      write(i >= objectivesList.length
+        ? "CHAPTER ONE COMPLETE"
+        : `${i + 1}/${objectivesList.length}
+${objectivesList[i].title}
+
+Open OBJECTIVES to reveal optional hints.`);
+    } else if (c === "hash") {
+      write("SHA256 9b77e14c0f... [archive copy]\nVerification mismatch: 2.6% unallocated/reconstructed sectors.");
+    } else if (c === "whoami") {
+      write(state.scares.includes("session_seen") ? "AUDIT_GUEST\n\nactive sessions: 2" : "AUDIT_GUEST\n\nactive sessions: 1");
+    } else if (c === "list" && arg === "volumes") {
+      write(state.hiddenUnlocked ? "CASE_EXPORT\nUSER_DATA\nDEVICE_LOGS\nRECOVERED\nSYSTEM_RECOVERY" : "CASE_EXPORT\nUSER_DATA\nDEVICE_LOGS\nRECOVERED\n[1 deleted volume header]");
+    } else if (c === "find") {
+      const hits = searchIndex.filter(x => x.body.toLowerCase().includes(arg) || x.key.includes(arg));
+      write(hits.length ? hits.map(x => x.label).join("\n") : "0 matches");
+    } else if (c === "clear") {
+      out.textContent = "";
+    } else {
+      write("unknown command");
+    }
+
+    state.interactionCount++;
+    saveState();
+    updateProgression();
+  }
+
+  function openArtifact(item) {
+    if (!item) return;
+    markOpened(item.id);
+    openModal(item.title, item.text, item.image ? {
+      src: item.image,
+      label: item.imageLabel || "View Source Image",
+      title: item.title
+    } : null);
+    addClue(item.clue);
+    refreshObjectiveState(true);
+
+    if (item.id === "watch_index" && !state.scares.includes("final_ping")) {
+      state.scares.push("final_ping");
+      setTimeout(() => {
+        modalBody.textContent += `\n\n\n[RECOVERY EVENT]\nA new line appeared while this file was open:\n\nlast_viewed: THIS SESSION`;
+        tinyGlitch();
+        $("#caseStatus").textContent = "CASE ACTIVE";
+        state.integrity = 96.2;
+        saveState();
+        updateChrome();
+      }, 2600);
+    }
+  }
+
+  function openMail(mail) {
+    if (!mail) return;
+    markOpened(mail.id);
+    const body = `FROM: ${mail.from}
+TO: ${mail.to}
+DATE: ${mail.date}
+SUBJECT: ${mail.subject}
+
+${mail.text}`;
+    openModal(mail.subject, body, mail.image ? {
+      src: mail.image,
+      label: mail.imageLabel || "Open Attachment",
+      title: mail.subject
+    } : null);
+    addClue(mail.clue);
+    refreshObjectiveState(true);
+  }
+
+  function openThread(thread) {
+    if (!thread) return;
+    markOpened(thread.id);
+    const body = thread.lines.map(([who, when, text]) => `${who}  ${when}\n${text}`).join("\n\n");
+    openModal(thread.name, body);
+    addClue(thread.clue);
+    refreshObjectiveState(true);
+  }
+
+  function openModal(title, body, sourceImage=null) {
+    beep("soft");
+    modalTitle.textContent = title;
+    modalBody.innerHTML = "";
+    const pre = document.createElement("div");
+    pre.className = "artifact-text";
+    pre.textContent = body;
+    modalBody.appendChild(pre);
+
+    if (sourceImage?.src) {
+      const wrap = document.createElement("div");
+      wrap.className = "artifact-source";
+      const btn = document.createElement("button");
+      btn.className = "small-button source-button";
+      btn.type = "button";
+      btn.textContent = sourceImage.label || "View Source Image";
+      btn.addEventListener("click", () => openImageEvidence(sourceImage.title || title, sourceImage.src));
+      wrap.appendChild(btn);
+      modalBody.appendChild(wrap);
+    }
+
+    modalBackdrop.classList.remove("hidden");
+  }
+
+  function openImageEvidence(title, src) {
+    beep("soft");
+    modalTitle.textContent = title;
+    modalBody.innerHTML = "";
+    const figure = document.createElement("figure");
+    figure.className = "evidence-figure";
+
+    const img = document.createElement("img");
+    img.src = src;
+    img.alt = title;
+    img.loading = "eager";
+
+    figure.appendChild(img);
+
+    const cap = document.createElement("figcaption");
+    cap.textContent = "Recovered source artifact";
+    figure.appendChild(cap);
+
+    modalBody.appendChild(figure);
+    modalBackdrop.classList.remove("hidden");
+  }
+
+  function closeModal() {
+    modalBackdrop.classList.add("hidden");
+  }
+
+  function escapeHtml(str) {
+    return String(str ?? "")
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#039;");
+  }
+
+  function escapeAttr(str) {
+    return escapeHtml(str).replaceAll("`", "&#096;");
+  }
+
+  $$(".nav-button").forEach(btn => {
+    btn.addEventListener("click", () => {
+      state.view = btn.dataset.view;
+      clearNew(state.view);
+      saveState();
+      render();
+    });
+  });
+
+
+  const audioToggle = $("#audioToggle");
+  if (audioToggle) {
+    audioToggle.textContent = state.audioOn ? "SOUND: ON" : "SOUND: OFF";
+    audioToggle.setAttribute("aria-pressed", state.audioOn ? "true" : "false");
+    audioToggle.addEventListener("click", () => {
+      state.audioOn = !state.audioOn;
+      audioToggle.textContent = state.audioOn ? "SOUND: ON" : "SOUND: OFF";
+      audioToggle.setAttribute("aria-pressed", state.audioOn ? "true" : "false");
+
+      if (state.audioOn) {
+        beep("soft");
+        startMainTheme();
+      } else {
+        stopMainTheme();
+      }
+
+      saveState();
+    });
+  }
+
+  bootButton.addEventListener("click", () => {
+    beep("soft");
+    setBooted();
+    startMainTheme();
+  });
+
+  modalClose.addEventListener("click", closeModal);
+  modalBackdrop.addEventListener("click", e => {
+    if (e.target === modalBackdrop) closeModal();
+  });
+
+  document.addEventListener("keydown", e => {
+    if (e.key === "Escape" && !modalBackdrop.classList.contains("hidden")) closeModal();
+  });
+
+  $("#resetButton").addEventListener("click", () => {
+    if (confirm("Erase your local investigation progress and restart Chapter One?")) {
+      localStorage.removeItem(STORAGE_KEY);
+      location.reload();
+    }
+  });
+
+  bootSequence();
+})();
+
+
+document.addEventListener("pointerdown", () => {
+  try { startMainTheme(); } catch {}
+}, { once: true });
