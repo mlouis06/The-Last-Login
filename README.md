@@ -1,8 +1,6 @@
 # The Last Login — Chapter One
 
-A text-first psychological horror / cold-case investigation game.
-
-You are reviewing a recovered forensic image tied to the 2019 disappearance of Lena Ortiz. The case was closed as a voluntary disappearance. The archive raises questions the original investigation did not answer.
+You are reviewing a recovered case file tied to the 2019 disappearance of Lena Ortiz. The case was closed as a voluntary disappearance. The archive raises questions the original investigation did not answer.
 
 ## Play locally
 
