@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: the-last-login
+    runtime: static
+    buildCommand: echo "Static site - no build step"
+    staticPublishPath: .
+    headers:
+      - path: /*
+        name: X-Frame-Options
+        value: SAMEORIGIN
+      - path: /*
+        name: Referrer-Policy
+        value: strict-origin-when-cross-origin
